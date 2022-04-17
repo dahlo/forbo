@@ -1,0 +1,24 @@
+{% extends base.html %}
+
+{% block content %}
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="col-md-12">
+          <h2>Lägg till händelse</h2>
+	      <p>
+			<form enctype="multipart/form-data" action="/add" method="post">
+			  <table>
+				<tr><td>Period</td><td><input type="text" name="period" value="{{ current_period }}"/></td></tr>
+				<tr><td>Datum</td><td><input type="date" name="date"/></td></tr>
+				<tr><td>Belopp</td><td><input type="text" name="amount"/></td></tr>
+				<tr><td>Namn</td><td><input type="text" name="name"/></td></tr>
+				<tr><td>Märkning</td><td><input type="text" name="tags"/></td></tr>
+				<tr><td>Kommentarer</td><td><input type="text" name="notes"/></td></tr>
+				<tr><td>Bilaga</td><td><input type="file" name="invoice_file"/></td></tr>
+		        <tr><td><input type="submit"/></td></tr>
+              </table>
+	        </form>
+          </p>
+        </div>
+      </div>
+{% end %}

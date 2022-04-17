@@ -4,73 +4,158 @@ import os
 import yaml
 import re
 import logging
+from datetime import date
+import base64
+#import zlib
 
-# set up logging
-log = logging.getLogger("mylog")
-log.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter(
-#    "%(asctime)s %(threadName)-11s %(levelname)-10s %(message)s")
-# Alternative formatting available on python 3.2+:
-# formatter = logging.Formatter(
-     "{asctime} {threadName:>11} {levelname} {message}", style='{')
 
-# Log to stdout too
-streamhandler = logging.StreamHandler()
-streamhandler.setFormatter(formatter)
-log.addHandler(streamhandler)
+
+logging.basicConfig(format="{asctime} {threadName:>11} {levelname} {message}", 
+                    style='{',
+                    level=logging.DEBUG,
+                    )
+
+
 
 
 def get_periods():
-    return os.listdir('invoices')
+    # list directories
+    periods = [d.name for d in os.scandir('invoices') if d.is_dir()]
+
+    # if there are no periods, create one for the current year
+    if len(periods) == 0:
+            current_year = str(date.today().year)
+            logging.debug(f'No periods found, creating one for {current_year}')
+            os.mkdir(os.path.join('invoices', current_year))
+            return [current_year]
+
+    return periods
+
+
 
 def get_invoices(current_period):
     
     # list invoices from period
     try:
-        invoices = os.listdir(os.path.join('invoices', current_period))
+        invoices = sorted(os.listdir(os.path.join('invoices', current_period)))
     except FileNotFoundError:
-        log.debug('Period dir not listable.')
+        logging.debug(f'Period dir not listable ({os.path.join("invoices", current_period)}).')
         return {'in':[],'out':[]}
 
-    return {'in':['in1', 'in2'], 'out':['out1', 'out2']}
-
     # split invoices into deposits and withdrawals
+    invoice_lists = {'in':[], 'out':[]}
     for invoice in invoices:
 
-        # split file name and pick out elements
-        pass
+        invoice_split = invoice.split('_-_')
+        
+        # get invoice info
+        invoice_element = {}
+        invoice_element['id'] = invoice_split[0]
+        invoice_element['date'] = invoice_split[1]
+        invoice_element['amount'] = float(invoice_split[2].replace(',','.'))
+        invoice_element['name'] = invoice_split[3]
+        invoice_element['tags'] = invoice_split[4]
+        invoice_element['notes'] = base64.b64decode(invoice_split[5].encode()).decode('utf-8')
+        invoice_element['filename'] = invoice_split[6]
+
+        # separate deposits from withdrawals
+        if invoice_element['amount'] > 0:
+            invoice_lists['in'].append(invoice_element)
+        else:
+            invoice_lists['out'].append(invoice_element)
+
+    return invoice_lists
 
 
-    return invoices
+
+
+def get_next_index(period):
+
+    # list files
+    try:
+        a.encoinvoices = os.listdir(os.path.join('invoices', period))
+
+    # if the period dir does not exist yet
+    except FileNotFoundError:
+        logging.debug(f'Period not found, creating one for {period}')
+        os.mkdir(os.path.join('invoices', period))
+        invoices = []
+
+    # if the list is empty
+    if len(invoices) == 0:
+        return "0".zfill(4)
+
+    # pick out indexes
+    indexes = [int(i.split('_-_')[0]) for i in invoices]
+
+    # return the maximum one + 1
+    return str(max(indexes)+1).zfill(4)
+
+
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
 
+        logging.debug('Running main handler.')
+
         # list invoice folder
         periods = get_periods()
 
-        # set current period, if there is one
-        try:
-            current_period = periods[-1]
-        except IndexError:
-            log.debug('No periods found.')
-            current_period = "-"
+        # set current period
+        current_period = periods[-1]
 
+        # get invoices from current period
         invoices = get_invoices(current_period)
 
+        # render page
+        self.render("home.html", title=config['site_name'], deposits=invoices['in'], withdrawals=invoices['out'])
 
 
-        self.render("index.html", title=config['site_name'], deposits=invoices['in'], withdrawals=invoices['out'])
 
 
+class AddHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("add.html", title=config['site_name'], current_period=get_periods()[-1])
 
+
+    def post(self):
+
+        # get post data
+        period = self.get_argument('period')
+        invoice_date = self.get_argument('date')
+        amount = self.get_argument('amount')
+        name = self.get_argument('name')
+        tags = self.get_argument('tags')
+        notes = self.get_argument('notes')
+        invoice_file = self.request.files['invoice_file'][0]
+
+        # base64 encode the notes
+        notes_bytes = notes.encode('utf-8')
+        notes64_bytes = base64.b64encode(notes_bytes)
+        notes64 = notes64_bytes.decode('utf-8')
+        
+        # get next index to use in the period
+        index = get_next_index(period)
+
+        # compress notes string
+        #notes64 = base64.b64encode(zlib.compress(notes.encode())).decode('utf-8')
+
+        # construct file name
+        file_name = f"{index}_-_{invoice_date}_-_{amount}_-_{name}_-_{tags}_-_{notes64}_-_{invoice_file['filename']}"
+
+        # write file
+        with open(os.path.join('invoices', period, file_name), 'wb') as ifh:
+            ifh.write(invoice_file['body'])
+
+        self.finish(f'<html>Ny händelse sparad, återgår till startsidan om 3 sekunder.<meta http-equiv="Refresh" content="3; url=\'/\'" /></html>')
 
 
 
 def make_app(settings=None):
     return tornado.web.Application([
             (r"/", MainHandler),
+            (r"/add", AddHandler),
 
             ],
             ** settings,
@@ -89,7 +174,7 @@ if __name__ == "__main__":
         with open(r'config.yaml') as config_file:
             config = yaml.load(config_file, Loader=yaml.FullLoader)
     except FileNotFoundError:
-        log.warning("Config file not found, creating default config.")
+        logging.warning("Config file not found, creating default config.")
 
         # create a default config file
         config = {  'site_name':'Förenklat bokslut',
@@ -97,7 +182,7 @@ if __name__ == "__main__":
 
         with open(r'config.yaml', 'w') as config_file:
             yaml.dump(config, config_file)
-            log.debug('Writing default config file.')
+            logging.debug('Writing default config file.')
 
 
 
@@ -107,6 +192,7 @@ if __name__ == "__main__":
                 }
     
     app = make_app(settings = settings)
+    logging.info("Starting web server on port 8888.")
     app.listen(8888)
     tornado.ioloop.IOLoop.current().start()
 
