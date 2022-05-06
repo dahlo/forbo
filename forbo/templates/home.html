@@ -1,43 +1,174 @@
 {% extends base.html %}
 
 {% block jumbotron %}
-    <!-- Main jumbotron for a primary marketing message or call to action -->
-    <div class="jumbotron">
-      <div class="container">
+<!-- Main jumbotron for a primary marketing message or call to action -->
+<div class="jumbotron">
+    <div class="container">
         <h1>Förenklat bokslut</h1>
         <p></p>
-      </div>
     </div>
+</div>
 {% end %}
 
 
 {% block content %}
-    <div class="container">
-      <!-- Example row of columns -->
-      <div class="row">
-        <div class="col-md-12">
-          <h2>Balans</h2>
-          <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
-          <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
-        </div>
-        <div class="col-md-6">
-          <h2>Utgifter</h2>
-	  <p>
-	  {% for invoice in withdrawals %}
-	      {{invoice}}<br>
-	  {% end %}
-	  </p>
-          <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
-       </div>
-        <div class="col-md-6">
-          <h2>Intäkter</h2>
-          <p>
-	  {% for invoice in deposits %}
-	      {{invoice}}<br>
-	  {% end %}
-	  </p>
-          <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
-        </div>
-      </div>
 
-{% end %}
+
+
+<div class="container">
+    <!-- Example row of columns -->
+    <div class="row">
+        <div class="col-md-12">
+			<label for="period-select">Aktuell period:</label>
+			<select name="period_select" id="period_select">
+				{% for period in sorted(periods.keys()) %}
+                    {% if period==current_period %}
+        				<option value="{{ period }}" selected>{{ period }}</option>
+                    {% else %}
+        				<option value="{{ period }}">{{ period }}</option>
+                    {% end %}
+				{% end %}
+            </select>
+		</div>
+        <div class="col-md-12">
+            <h2>Balans</h2>
+            <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+            <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+        </div>
+        <div class="col-md-12">
+            <h2>Utgifter</h2>
+            <p>
+            <table class="table table-striped" id="sortTable" style="width:100%">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>ID</th>
+                        <th>Datum</th>
+                        <th>Belopp</th>
+                        <th>Beskrivning</th>
+                        <th>Kategori</th>
+                        <th>Kommentar</th>
+                        <th>Underlag</th>
+                    </tr>
+                </thead>
+                <tfoot>
+                    <tr>
+                        <form enctype="multipart/form-data" action="/api/add/invoice" method="post">
+                            <td><input type="submit" value="Lägg till"></td>
+                            <td></td>
+                            <td><input type="date" name="date" style="height: 26px"></td>
+                            <td><input type="text" name="amount" placeholder="-123"></td>
+                            <td><input type="text" name="description" placeholder="Kortare beskrivning"></td>
+                            <td><input type="text" name="category" placeholder="ex el eller försäkring" class="categoryAutoComplete"></td>
+                            <td><input type="text" name="comment" placeholder="Kommentarer"></td>
+                            <td><input type="file" name="invoice_file" accept="*" capture /></td>
+                            <input type="hidden" name="period" value="{{ current_period }}">
+                        </form>
+                    </tr>
+                </tfoot>
+                <tbody>
+                    {% for invoice in withdrawals %}
+                    <tr>
+                        <td>
+                            <table>
+                                <tr>
+                                    <td><form action="/api/get/invoice" method="post" style="float: left;"><button type="submit" class="btn btn-link" style="padding: 0px 1px 0px 1px;"><input type="hidden" name="id" value="{{invoice['id']}}"><span class="glyphicon glyphicon-download" aria-hidden="true" title="Ladda ner underlag"></span></button></form></td>
+                                    <td><a href="#"><span class="glyphicon glyphicon-eye-open" aria-hidden="true" title="Förhandsgranska underlag" style="padding: 0px 1px 0px 1px;"></span></a></td>
+                                    <td><a href="/edit/invoice/?id={{invoice['id']}}"><span class="glyphicon glyphicon-edit" aria-hidden="true" title="Ändra rad" style="padding: 0px 1px 0px 1px;"></span></a></td>
+                                    <td><form action="/api/remove/invoice" method="post" style="float: left;"><button type="submit" class="btn btn-link" style="padding: 0px 1px 0px 1px;"><input type="hidden" name="id" value="{{invoice['id']}}"><span class="glyphicon glyphicon-remove" aria-hidden="true" title="Ta bort rad"></span></button></form></td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>{{int(invoice['id'])}}</td>
+                        <td>{{invoice['date']}}</td>
+                        <td>{{invoice['amount']}}</td>
+                        <td>{{invoice['description']}}</td>
+                        <td>{{invoice['category']}}</td>
+                        <td>{{invoice['notes']}}</td>
+                        <td></td>
+                    </tr>
+                    {% end %}
+                </tbody>
+            </table>
+            </p>
+        </div>
+        <div class="col-md-12">
+            <h2>Intäkter</h2>
+            <p>
+            <table class="table table-striped" id="sortTable" style="width:100%">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>ID</th>
+                        <th>Datum</th>
+                        <th>Belopp</th>
+                        <th>Beskrivning</th>
+                        <th>Kategori</th>
+                        <th>Kommentar</th>
+                        <th>Underlag</th>
+                    </tr>
+                </thead>
+                <tfoot>
+                    <tr>
+                        <form enctype="multipart/form-data" action="/api/add/invoice" method="post">
+                            <td><input type="submit" value="Lägg till"></td>
+                            <td></td>
+                            <td><input type="date" name="date" style="height: 26px"></td>
+                            <td><input type="text" name="amount" placeholder="123"></td>
+                            <td><input type="text" name="description" placeholder="Kortare beskrivning"></td>
+                            <td><input type="text" name="category" placeholder="ex el eller försäkring" class="categoryAutoComplete"></td>
+                            <td><input type="text" name="comment" placeholder="Kommentarer"></td>
+                            <td><input type="file" name="invoice_file" accept="*" capture /></td>
+                            <input type="hidden" name="period" value="{{ current_period }}">
+                        </form>
+                    </tr>
+                </tfoot>
+                <tbody>
+                    {% for invoice in deposits %}
+                    <tr>
+                        <td>
+                            <table>
+                                <tr>
+                                    <td><form action="/api/get/invoice" method="post" style="float: left;"><button type="submit" class="btn btn-link" style="padding: 0px 1px 0px 1px;"><input type="hidden" name="id" value="{{invoice['id']}}"><span class="glyphicon glyphicon-download" aria-hidden="true" title="Ladda ner underlag"></span></button></form></td>
+                                    <td><a href="#"><span class="glyphicon glyphicon-eye-open" aria-hidden="true" title="Förhandsgranska underlag" style="padding: 0px 1px 0px 1px;"></span></a></td>
+                                    <td><a href="/edit/invoice/?id={{invoice['id']}}"><span class="glyphicon glyphicon-edit" aria-hidden="true" title="Ändra rad" style="padding: 0px 1px 0px 1px;"></span></a></td>
+                                    <td><form action="/api/remove/invoice" method="post" style="float: left;"><button type="submit" class="btn btn-link" style="padding: 0px 1px 0px 1px;"><input type="hidden" name="id" value="{{invoice['id']}}"><span class="glyphicon glyphicon-remove" aria-hidden="true" title="Ta bort rad"></span></button></form></td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td>{{int(invoice['id'])}}</td>
+                        <td>{{invoice['date']}}</td>
+                        <td>{{invoice['amount']}}</td>
+                        <td>{{invoice['description']}}</td>
+                        <td>{{invoice['category']}}</td>
+                        <td>{{invoice['notes']}}</td>
+                        <td></td>
+                    </tr>
+                    {% end %}
+                </tbody>
+            </table>
+            </p>
+            <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+        </div>
+    </div>
+
+    <script>
+       var tags = [ {% raw category_tags %} ];
+       $( ".categoryAutoComplete" ).autocomplete({
+          source: function( request, response ) {
+             var matcher = new RegExp( "^" + $.ui.autocomplete.escapeRegex( request.term ), "i" );
+             response( $.grep( tags, function( item ){
+                return matcher.test( item );
+             }) );
+          }
+       });
+    </script>
+
+    <script>
+        var selectElement = document.getElementById("period_select");
+        selectElement.onchange = function(){
+            document.cookie = "current_period=" + selectElement.options[selectElement.selectedIndex].text;
+            location.reload();
+        };
+    </script>
+    {% end %}

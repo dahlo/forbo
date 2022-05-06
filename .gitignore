@@ -1,2 +1,3 @@
 invoices/*
 *.swp
+*.sqlite

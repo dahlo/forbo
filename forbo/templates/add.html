@@ -4,19 +4,20 @@
       <!-- Example row of columns -->
       <div class="row">
         <div class="col-md-12">
-          <h2>Lägg till händelse</h2>
+            <h2>Lägg till {{ 'intäkt' if direction=="in" else 'utgift'}}</h2>
 	      <p>
-			<form enctype="multipart/form-data" action="/add" method="post">
+			<form enctype="multipart/form-data" action="/api/add/invoice" method="post">
 			  <table>
 				<tr><td>Period</td><td><input type="text" name="period" value="{{ current_period }}"/></td></tr>
 				<tr><td>Datum</td><td><input type="date" name="date"/></td></tr>
-				<tr><td>Belopp</td><td><input type="text" name="amount"/></td></tr>
-				<tr><td>Namn</td><td><input type="text" name="name"/></td></tr>
-				<tr><td>Märkning</td><td><input type="text" name="tags"/></td></tr>
-				<tr><td>Kommentarer</td><td><input type="text" name="notes"/></td></tr>
-				<tr><td>Bilaga</td><td><input type="file" name="invoice_file"/></td></tr>
+				<tr><td>Belopp</td><td><input type="text" placeholder="123" name="amount"/></td></tr>
+				<tr><td>Beskrivning</td><td><input type="text" placeholder="Kortare beskrivning" name="description"/></td></tr>
+				<tr><td>Kategori</td><td><input type="text" placeholder="ex. el eller försäkring" name="category"/></td></tr>
+                <tr><td>Kommentarer</td><td><textarea type="text" placeholder="Längre förklaring och kommentarer" cols=22 name="notes"></textarea></td></tr>
+				<tr><td>Bilaga</td><td><input type="file" name="invoice_file" accept="*" capture /></td></tr>
 		        <tr><td><input type="submit"/></td></tr>
               </table>
+              <input type="hidden" name="direction" value="{{ direction }}"/>
 	        </form>
           </p>
         </div>
