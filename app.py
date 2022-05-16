@@ -90,11 +90,11 @@ def create_db():
     logging.info("Creating new database.")
 
     # make sure the file doesn't exist yet, and move the old db to a new name before creating a new empty one
-    if os.path.exists("forbok/db.sqlite"):
-        logging.warning(f"Old database found. Moving to new name to not overwrite it, forbok/db.sqlite.{datetime.datetime.now().strftime('%Y-%M-%d_%H%m%S')}")
-        shutil.move("forbok/db.sqlite", f"forbok/db.sqlite.{datetime.datetime.now().strftime('%Y-%M-%d_%H%m%S')}")
+    if os.path.exists("fobos/db.sqlite"):
+        logging.warning(f"Old database found. Moving to new name to not overwrite it, fobos/db.sqlite.{datetime.datetime.now().strftime('%Y-%M-%d_%H%m%S')}")
+        shutil.move("fobos/db.sqlite", f"fobos/db.sqlite.{datetime.datetime.now().strftime('%Y-%M-%d_%H%m%S')}")
 
-    shutil.copy("forbok/db.sqlite.dist", "forbok/db.sqlite")
+    shutil.copy("fobos/db.sqlite.dist", "fobos/db.sqlite")
     logging.debug("New database created.")
 
 
@@ -102,12 +102,12 @@ def create_db():
 def connect_db():
 
     # create db if it does not exist
-    if not os.path.exists('forbok/db.sqlite'):
+    if not os.path.exists('fobos/db.sqlite'):
         create_db()
 
     # connect to db
     logging.info("Connecting to database.")
-    db = sqlite3.connect("forbok/db.sqlite")
+    db = sqlite3.connect("fobos/db.sqlite")
 
     # get dict like results from db
     db.row_factory = sqlite3.Row
@@ -347,8 +347,8 @@ if __name__ == "__main__":
 
 
     # tornado settings
-    settings = {"template_path": os.path.join(os.path.dirname(__file__), "forbok", "templates"),
-            "static_path": os.path.join(os.path.dirname(__file__), "forbok", "static"),
+    settings = {"template_path": os.path.join(os.path.dirname(__file__), "fobos", "templates"),
+            "static_path": os.path.join(os.path.dirname(__file__), "fobos", "static"),
 
             }
 
