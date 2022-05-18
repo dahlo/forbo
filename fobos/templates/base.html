@@ -77,7 +77,20 @@
     
     <script>
         $(document).ready(function() {
-            $('table#sortTable').DataTable();
+
+			// options to datatables
+            $('table.sortTable').DataTable({
+
+				// column options
+			    columnDefs: [
+
+				  // disable sorting on column 0
+			      { orderable: false, targets: 0 }
+			    ],
+
+				// set default sorting for table
+			    order: [[2, 'asc']] 
+            });
         } );
     </script>
     </body>
