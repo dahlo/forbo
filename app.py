@@ -9,6 +9,7 @@ import base64
 #import zlib
 import sqlite3
 import shutil
+from pathlib import Path
 
 import pdb
 
@@ -110,7 +111,7 @@ def get_invoice(cur, id):
     res = cur.execute("SELECT * FROM invoices WHERE id=?", [id]).fetchone()
 
     # return as dict
-    return dict(row)
+    return dict(res)
 
 
 
@@ -177,15 +178,25 @@ def get_category_tags(cur):
 
 
 
-
+# serve a general file
 def serve_file(path, filename=None):
-        file_location = os.path.join(FILES_ROOT, path)
-        if not os.path.isfile(file_location):
+        if not os.path.isfile(path):
             raise tornado.web.HTTPError(status_code=404)
-        content_type, _ = guess_type(file_location)
-        self.add_header('Content-Type', content_type)
-        with open(file_location) as source_file:
-            self.write(source_file.read())
+        self.set_header('Content-Type', 'application/octet-stream')
+
+        # set file name if specified
+        if filename:
+            self.set_header('Content-Disposition', 'attachment; filename=' + filename)
+
+        # set bufer size
+        buf_size = 4096
+        with open(path) as source_file:
+            while True:
+                date = source_file.read(buf_size)
+                if not data:
+                    break
+                self.write(source_file.read())
+        self.finish()
 
 
 
@@ -258,7 +269,7 @@ class ApiHandler(tornado.web.RequestHandler):
 
 
     # post router
-    def post(self):
+    def post(self, api_route=None):
 
         # if the add invoice button was pressed
         if self.get_argument('add-button-in', None):
@@ -277,8 +288,8 @@ class ApiHandler(tornado.web.RequestHandler):
 
         # split route
         route = api_route.split('/')
-
         pdb.set_trace()
+        #pdb.set_trace()
         # send invoice requests to the invoice function
         if route[0] == 'invoice':
             return self.invoice(route[1:])
@@ -297,20 +308,52 @@ class ApiHandler(tornado.web.RequestHandler):
     def invoice(self, route):
 
         if route[0].startswith('download'):
+            
+            # get the requestid invoice id
+            id = self.get_argument('id')
 
-            # i = get_invoice(id)
-            # serve_file(i['filename'], 'new_filename_without_id_')
-
+            invoice = get_invoice(self.cur, id)
+            self.invoice_download(invoice)
+            pass
 
         else:
             return
 
 
 
-    def invoice_download(self.route):
+    def invoice_download(self, invoice):
+
+        pdb.set_trace()
+        # get the original file name
+
+        org_filename = "_".join(os.path.basename(invoice['file_path']).split('_')[1:])
+
+        path = invoice['file_path']
+
+        if not os.path.isfile(path):
+            raise tornado.web.HTTPError(status_code=404)
+        self.set_header('Content-Type', 'application/octet-stream')
+
+        # set file name
+        self.set_header('Content-Disposition', 'attachment; filename=' + org_filename)
+
+        # set bufer size
+        buf_size = 4096
+        with open(path) as source_file:
+            while True:
+                date = source_file.read(buf_size)
+                if not data:
+                    break
+                self.write(source_file.read())
+        self.finish()
 
 
-    def invoice_add(self, direction=None):
+
+
+
+
+
+def invoice_add(self, direction=None):
 
         # get post data
         period = sanitize_input(self.get_cookie('current_period'))
@@ -364,6 +407,9 @@ class ApiHandler(tornado.web.RequestHandler):
             # construct file name
             file_name = f"{last_id}_{invoice_file['filename']}"
 
+            # create invoice folder if needed
+            Path(os.path.join('invoices', period)).mkdir(parents=True, exist_ok=True)
+        
             # write file
             with open(os.path.join('invoices', period, file_name), 'wb') as ifh:
                 ifh.write(invoice_file['body'])
